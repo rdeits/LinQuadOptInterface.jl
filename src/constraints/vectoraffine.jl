@@ -67,6 +67,30 @@ function MOI.modify!(m::LinQuadOptimizer, ref::VLCI{<: VecLinSets}, chg::MOI.Mul
     end
 end
 
+MOI.canset(m::LinQuadOptimizer, ::MOI.ConstraintFunction, ::Type{VLCI{S}}) where {S <: VecLinSets} = true
+function MOI.set!(m::LinQuadOptimizer, attr::MOI.ConstraintFunction, c::VLCI{S}, replacement::VecLin) where {S <: VecLinSets}
+    constraint_indices = m[c]
+    @assert length(constraint_indices) == length(replacement.terms) == length(replacement.constants)
+    previous = MOI.get(m, attr, c)
+    for term in previous.terms
+        row = constraint_indices[term.output_index]
+        col = m.variable_mapping[term.scalar_term.variable_index]
+        change_matrix_coefficient!(m, row, col, zero(Float64))
+    end
+    for term in replacement.terms
+        row = constraint_indices[term.output_index]
+        col = m.variable_mapping[term.scalar_term.variable_index]
+        change_matrix_coefficient!(m, row, col, term.scalar_term.coefficient)
+    end
+    for i in eachindex(constraint_indices)
+        row = constraint_indices[i]
+        if !iszero(previous.constants[i]) || !iszero(replacement.constants[i])
+            m.constraint_constant[row] = replacement.constants[i]
+        end
+    end
+end
+
+
 MOI.candelete(m::LinQuadOptimizer, c::VLCI{<:VecLinSets}) = MOI.isvalid(m, c)
 function MOI.delete!(m::LinQuadOptimizer, c::VLCI{<:VecLinSets})
     deleteconstraintname!(m, c)
