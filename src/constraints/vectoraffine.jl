@@ -70,7 +70,6 @@ end
 MOI.canset(m::LinQuadOptimizer, ::MOI.ConstraintFunction, ::Type{VLCI{S}}) where {S <: VecLinSets} = true
 function MOI.set!(m::LinQuadOptimizer, attr::MOI.ConstraintFunction, c::VLCI{S}, replacement::VecLin) where {S <: VecLinSets}
     constraint_indices = m[c]
-    @assert length(constraint_indices) == length(replacement.terms) == length(replacement.constants)
     previous = MOI.get(m, attr, c)
     for term in previous.terms
         row = constraint_indices[term.output_index]
